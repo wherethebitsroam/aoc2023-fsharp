@@ -18,4 +18,4 @@ open Aoc2023
 //     File.WriteAllText(path, content, Encoding.UTF8)
 //     printfn $"<Compile Include=\"%s{path}\" />"
     
-let data = File.ReadAllText "../../day1.txt" |> Day01.part2 |> printfn "%A"
+let data = File.ReadAllText "../../day2.txt" |> Day02.part2 |> printfn "%A"
