@@ -11,8 +11,6 @@ type Parsed = {
     Stars: int list
 }
 
-let inline charToInt (c: char) = int c - int '0'
-
 let adjacent (rowLength: int) (s: Span) =
     seq {
        for i in (s.Start-1) .. s.End do
@@ -52,14 +50,12 @@ let parse (s: string) =
 let numberToInt (s: string) (span: Span)  =
     s.Substring(span.Start, span.End - span.Start) |> Int32.Parse
                 
-
 let part1 (s: string) =
     let x = parse (s.Trim())
     x.Numbers
     |> List.filter (fun n -> adjacent x.RowLength n |> Set.intersect x.Symbols |> Set.isEmpty |> not)
     |> List.map (numberToInt s)
     |> List.sum
-    
 
 let part2 (s: string) =
     let x = parse (s.Trim())
