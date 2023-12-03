@@ -61,13 +61,11 @@ let part2 (s: string) =
     let x = parse (s.Trim())
     // for each star:
     // - get the numbers adjacent to the star
-    // - where there are 2 numbers, multiply them, otherwise zero
+    // - filter to only results with 2 numbers
+    // - map the numbers to ints and multiply
     // - sum
     x.Stars
-    |> List.map (fun star -> x.Numbers |> List.filter (fun n -> Set.contains star (adjacent x.RowLength n)))
-    |> List.map (fun l ->
-        match l with
-        | [a;b] -> numberToInt s a * numberToInt s b
-        | _ -> 0
-        )
+    |> List.map (fun star -> x.Numbers |> List.filter (fun num -> num |> adjacent x.RowLength |> Set.contains star))
+    |> List.filter (fun l -> List.length l = 2)
+    |> List.map (fun l -> l |> List.map (numberToInt s) |> List.reduce (fun acc elem -> acc * elem) )
     |> List.sum
