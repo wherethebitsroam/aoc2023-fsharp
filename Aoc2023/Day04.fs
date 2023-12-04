@@ -26,17 +26,10 @@ let part1 (s: string) =
     s |> parse |> List.map Card.score |> List.sum
 
 let folder (m: Map<int,int>) (c: Card) =
-    let count = m[c.Num]
-    let winners = Card.winners c
-   
-    let update (existing: Option<int>) =
-        let value = existing |> Option.defaultValue 1
-        Some (value + count)
-    
-    let mutable map = m
-    for num in (c.Num + 1)..(c.Num+winners) do
-        map <- Map.change num update map
-    map
+    let cardCount = m[c.Num]
+    let update = Option.map ((+) cardCount)
+    let updateMap (map: Map<int,int>) (num: int) = Map.change num update map
+    seq { (c.Num + 1)..(c.Num + Card.winners c) } |> Seq.fold updateMap m
 
 let part2 (s: string) =
     let cards = s |> parse
