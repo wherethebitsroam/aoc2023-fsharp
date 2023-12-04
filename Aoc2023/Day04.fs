@@ -1,32 +1,29 @@
 ﻿module Aoc2023.Day04
 
-open System
+open FParsec
 
 type Card = {Num: int; Winning: Set<int>; Yours: Set<int>}
 
 module Card =
-    let parse (s: string) =
-        let x = s.Split(':', StringSplitOptions.TrimEntries)
-        let c = x[0].Split(' ', StringSplitOptions.RemoveEmptyEntries)
-        let y = x[1].Split('|', StringSplitOptions.TrimEntries)
+    let create (num: int) (winning: int list) (yours: int list) =
+        { Num = num; Winning =  winning |> Set.ofList; Yours = yours |> Set.ofList }
         
-        let parseSet (s: string) =
-            s.Split(' ', StringSplitOptions.RemoveEmptyEntries) |> Seq.map Int32.Parse |> Set.ofSeq
-    
-        { Num = Int32.Parse c[1]; Winning =  parseSet y[0]; Yours = parseSet y[1] }
-    
-    let winners (c: Card) =
-        let intersect = Set.intersect c.Winning c.Yours
-        intersect.Count
+    let winners (c: Card) = Set.intersect c.Winning c.Yours |> Set.count
         
-    let score (c: Card) =
-        (1 <<< winners c) >>> 1
+    let score (c: Card) = (1 <<< winners c) >>> 1
+        
+let intList = many (pint32 .>> spaces)
+let cardNum = pstring "Card" >>. spaces >>. pint32 .>> pstring ":" .>> spaces
+let cardParser = pipe3 cardNum (intList .>> pstring "|" .>> spaces) intList Card.create
+let cardsParser = many cardParser
+
+let parse (s: string) =
+    match (run cardsParser s) with
+    | Success(cards, _, _) -> cards
+    | Failure(errorMsg, _, _) -> failwith errorMsg
         
 let part1 (s: string) =
-    s.Trim().Split '\n'
-    |> Array.map Card.parse
-    |> Array.map Card.score
-    |> Array.sum
+    s |> parse |> List.map Card.score |> List.sum
 
 let folder (m: Map<int,int>) (c: Card) =
     let count = m[c.Num]
@@ -42,8 +39,6 @@ let folder (m: Map<int,int>) (c: Card) =
     map
 
 let part2 (s: string) =
-    let cards = s.Trim().Split '\n' |> Array.map Card.parse
-    let initial = cards |> Array.map (fun c -> (c.Num, 1)) |> Map.ofArray
-    cards |> Array.fold folder initial |> Map.values |> Seq.sum
-    
-
+    let cards = s |> parse
+    let initial = cards |> List.map (fun c -> (c.Num, 1)) |> Map.ofList
+    cards |> List.fold folder initial |> Map.values |> Seq.sum
