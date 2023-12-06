@@ -67,5 +67,5 @@ let part2 (s: string) =
     x.Stars
     |> List.map (fun star -> x.Numbers |> List.filter (fun num -> num |> adjacent x.RowLength |> Set.contains star))
     |> List.filter (fun l -> List.length l = 2)
-    |> List.map (fun l -> l |> List.map (numberToInt s) |> List.reduce (fun acc elem -> acc * elem) )
+    |> List.map (fun l -> l |> List.map (numberToInt s) |> List.reduce (*) )
     |> List.sum
