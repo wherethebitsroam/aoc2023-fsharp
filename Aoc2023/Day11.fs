@@ -18,12 +18,8 @@ module Point =
         {X = abs (p1.X - p2.X); Y = abs (p1.Y - p2.Y)}
         
 let points (map: char list list) =
-    let mutable points = List.empty
-    for y, row in List.indexed map do
-        for x, c in List.indexed row do
-            if c = '#' then
-                points <- {X = x; Y = y} :: points
-    points
+    let rowToPoints y cs = cs |> List.indexed |> List.choose (fun (x,c) -> if c = '#' then Some {X = x; Y = y} else None)
+    map |> List.indexed |> List.fold (fun ps (y,cs) -> (cs |> rowToPoints y) @ ps) List.empty
     
 let between (a: int64) (b: int64) (v: int64) =
     if a > b then
@@ -44,7 +40,7 @@ let dist (extra: int64) (emptyX: int64 list) (emptyY: int64 list) (p1: Point) (p
     let xExtra = emptyX |> List.filter (between p1.X p2.X) |> List.length |> int64
     let yExtra = emptyY |> List.filter (between p1.Y p2.Y) |> List.length |> int64
     
-    (d.X - xExtra) + (d.Y - yExtra) + (extra * (xExtra + yExtra))
+    d.X + d.Y + ((extra - 1L) * (xExtra + yExtra))
     
 let dists (extra: int64) (points: Point list) =
     let calcDist = dist extra (empty (_.X) points) (empty (_.Y) points)
