@@ -38,7 +38,6 @@ let empty (f: Point -> int64) (points: Point list) =
     seq { (List.min m)..(List.max m) }
     |> Seq.filter (fun x -> Set.contains x s |> not)
     |> List.ofSeq
-    
 
 let dist (extra: int64) (emptyX: int64 list) (emptyY: int64 list) (p1: Point) (p2: Point) =
     let d = Point.dist p1 p2
@@ -50,15 +49,12 @@ let dist (extra: int64) (emptyX: int64 list) (emptyY: int64 list) (p1: Point) (p
 let dists (extra: int64) (points: Point list) =
     let calcDist = dist extra (empty (_.X) points) (empty (_.Y) points)
     
-    let rec loop (ps: Point list) (acc: (Point * Point * int64) list) =
+    let rec loop (ps: Point list) (acc: int64 list) =
         match ps with
-        | p1::rest ->
-            let dists = rest |> List.map (fun p2 -> (p1, p2, calcDist p1 p2))
-            loop rest (acc @ dists)
+        | p1::rest -> loop rest (acc @ (rest |> List.map (calcDist p1)))
         | [] -> acc
     
     loop points List.empty
-    
 
 let test = "...#......
 .......#..
@@ -72,19 +68,9 @@ let test = "...#......
 #...#.....
 "
 
-let part1 (s: string) =
-    s
-    |> Parser.parse
-    |> points
-    |> dists 2
-    |> List.map (fun (_,_,d) -> d)
-    |> List.sum
+let solve (extra: int64) (s: string) = s |> Parser.parse |> points |> dists extra |> List.sum
 
-let part2 (s: string) =
-    s
-    |> Parser.parse
-    |> points
-    |> dists 1000000
-    |> List.map (fun (_,_,d) -> d)
-    |> List.sum
+let part1 (s: string) = s |> solve 2
+
+let part2 (s: string) = s |> solve 1000000
 
