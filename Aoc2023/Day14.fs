@@ -71,12 +71,12 @@ let cycle (rocks: char array array) =
     |> roll
     |> rotateClockwise
     
-let mutable step: Map<string, int> = Map.empty
-
 let mkKey (rocks: char array array) = $"%A{rocks}"
     
 let findCycle (max: int) (rocks: char array array) =
+    let mutable step: Map<string, int> = Map.empty
     let mutable rocks = rocks
+
     step <- Map.add (mkKey rocks) 0 step
     seq { 1..(max-1) }
     |> Seq.pick (fun i ->
