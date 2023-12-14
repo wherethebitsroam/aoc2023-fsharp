@@ -1,7 +1,6 @@
 ﻿module Aoc2023.Day12
 
 open System
-open System.Text.RegularExpressions
 open FParsec
 
 module Parser =
