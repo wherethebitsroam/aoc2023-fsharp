@@ -12,12 +12,12 @@ open Aoc2023
 //     printfn \"Aoc2023.Day%02d{i}.part1\"
 //
 // let part2 (s: string) =
-//     printfn \"Aoc2023.Day%02d{i}.part1\"
+//     printfn \"Aoc2023.Day%02d{i}.part2\"
 //
 // "
 //     File.WriteAllText(path, content, Encoding.UTF8)
 //     printfn $"<Compile Include=\"%s{path}\" />"
     
-let data = File.ReadAllText "../../day11.txt"
-data |> Day11.part1 |> printfn "%A"
-data |> Day11.part2 |> printfn "%A"
+let data = File.ReadAllText "../../day12.txt"
+data |> Day12.part1 |> printfn "%A"
+data |> Day12.part2 |> printfn "%A"
