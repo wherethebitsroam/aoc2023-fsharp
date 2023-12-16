@@ -36,7 +36,6 @@ let test = @".|...\....
 
 let getChar (map: char array array) (p: Point) =
     map |> Array.tryItem p.Y |> Option.bind (Array.tryItem p.X)
-    
 
 let rec beam (map: char array array) (point: Point) (dir: Dir) (been: Map<Point,Set<Dir>>)=
     let dirs = been |> Map.tryFind point |> Option.defaultValue Set.empty
@@ -50,39 +49,33 @@ let rec beam (map: char array array) (point: Point) (dir: Dir) (been: Map<Point,
         | Some x ->
             // never been here in this direction!
             let been = been |> Map.add point (dirs |> Set.add dir)
-            match x with
-            | '.' -> been |> beam map (Point.next dir point) dir
-            | '\\' ->
-                let dir =
+            let next =
+                match x with
+                | '.' -> [dir]
+                | '\\' ->
                     match dir with
-                    | Up -> Left
-                    | Down -> Right
-                    | Right -> Down
-                    | Left -> Up
-                been |> beam map (Point.next dir point) dir
-            | '/' ->
-                let dir =
+                    | Up -> [Left]
+                    | Down -> [Right]
+                    | Right -> [Down]
+                    | Left -> [Up]
+                | '/' ->
                     match dir with
-                    | Up -> Right
-                    | Down -> Left
-                    | Right -> Up
-                    | Left -> Down
-                been |> beam map (Point.next dir point) dir
-            | '-' ->
-                match dir with
-                | Left | Right -> been |> beam map (Point.next dir point) dir
-                | Up | Down ->
-                    been
-                    |> beam map (Point.next Right point) Right
-                    |> beam map (Point.next Left point) Left
-            | '|' ->
-                match dir with
-                | Up | Down -> been |> beam map (Point.next dir point) dir
-                | Left | Right ->
-                    been
-                    |> beam map (Point.next Up point) Up
-                    |> beam map (Point.next Down point) Down
-            | _ -> failwith "wtf"
+                    | Up -> [Right]
+                    | Down -> [Left]
+                    | Right -> [Up]
+                    | Left -> [Down]
+                | '-' ->
+                    match dir with
+                    | Left | Right -> [dir]
+                    | Up | Down -> [Right; Left]
+                | '|' ->
+                    match dir with
+                    | Up | Down -> [dir]
+                    | Left | Right -> [Up; Down]
+                | _ -> failwith "wtf"
+            next
+            |> List.fold (fun been dir -> beam map (Point.next dir point) dir been) been
+            
             
 let printMap (map: char array array) (been: Map<Point,Set<Dir>>) =
     map
@@ -104,8 +97,6 @@ let part1 (s: string) =
     Map.empty
     |> beam map {X = 0; Y = 0} Right
     |> Map.count
-    
-        
 
 let part2 (s: string) =
     let map =
