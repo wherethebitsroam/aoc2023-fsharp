@@ -2,16 +2,16 @@
 
 open FParsec
 
-type Part = {x: int; m: int; a: int; s: int}
+type Part = Map<char,int>
 
 module Part =
     let fromList (l: int list) =
         match l with
-        | [x;m;a;s] -> {x = x; m = m; a = a; s = s}
+        | [x;m;a;s] -> [('x',x); ('m',m); ('a', a); ('s',s)] |> Map.ofList
         | _ -> failwithf "bad part: %A" l
     
     let sum (p: Part) =
-        p.x + p.m + p.a + p.s
+        p |> Map.values |> Seq.sum
 
 type Op = Gt | Lt
 type Dest = Workflow of string | Accept | Reject
@@ -36,14 +36,7 @@ module Rule =
         { attr = attr; op = op; value = value; dest = dest }
     
     let matches (part: Part) (rule: Rule) =
-        let v =
-            match rule.attr with
-            | 'x' -> part.x
-            | 'm' -> part.m
-            | 'a' -> part.a
-            | 's' -> part.s
-            | _ -> failwithf "bad rule attr: %A" rule.attr
-        
+        let v = part[rule.attr]
         match rule.op with
         | Gt -> v > rule.value
         | Lt -> v < rule.value
@@ -113,47 +106,30 @@ module Range =
     let split (op: Op) (value: int) (r: Range) =
         match op with
         | Gt ->
-            if r.lo > value then
-                (Some r, None)
-            elif r.hi <= value then
-                (None, Some r)
-            else
-                (Some {lo = value+1; hi = r.hi}, Some { lo = r.lo; hi = value })
+            if r.lo > value then (Some r, None)
+            elif r.hi <= value then (None, Some r)
+            else (Some {lo = value+1; hi = r.hi}, Some { lo = r.lo; hi = value })
         | Lt ->
-            if r.hi < value then
-                (Some r, None)
-            elif r.lo >= value then
-                (None, Some r)
-            else
-                (Some {lo = r.lo; hi = value-1 }, Some { lo = value; hi = r.hi })
+            if r.hi < value then (Some r, None)
+            elif r.lo >= value then (None, Some r)
+            else (Some {lo = r.lo; hi = value-1 }, Some { lo = value; hi = r.hi })
     
-    let size (r: Range) =
-        int64 r.hi - int64 r.lo + 1L
+    let size (r: Range) = int64 r.hi - int64 r.lo + 1L
 
-type PartRange = {x: Range; m: Range; a: Range; s: Range}
+type PartRange = Map<char,Range>
 
 module PartRange =
-    let size (pr: PartRange) =
-        [Range.size pr.x; Range.size pr.m; Range.size pr.a; Range.size pr.s]
-        |> List.reduce (*)
+    let update (pr: PartRange) (c: char) (r: Range) = Map.add c r pr
+        
+    let size (pr: PartRange) = pr |> Map.values |> Seq.map Range.size |> Seq.reduce (*)
 
 let partRanges (workflows: Map<string,Workflow>) =
     // returns (match range, match dest, non-match range)
     let processRule (r: Rule) (pr: PartRange) =
-        match r.attr with
-        | 'x' ->
-            let succ, fail = Range.split r.op r.value pr.x
-            (succ |> Option.map (fun r -> {pr with x = r}), r.dest, fail |> Option.map (fun r -> {pr with x = r}))
-        | 'm' ->
-            let succ, fail = Range.split r.op r.value pr.m
-            (succ |> Option.map (fun r -> {pr with m = r}), r.dest, fail |> Option.map (fun r -> {pr with m = r}))
-        | 'a' ->
-            let succ, fail = Range.split r.op r.value pr.a
-            (succ |> Option.map (fun r -> {pr with a = r}), r.dest, fail |> Option.map (fun r -> {pr with a = r}))
-        | 's' ->
-            let succ, fail = Range.split r.op r.value pr.s
-            (succ |> Option.map (fun r -> {pr with s = r}), r.dest, fail |> Option.map (fun r -> {pr with s = r}))
-        | _ -> failwithf "bad rule attr: %A" r.attr
+        let succ, fail = Range.split r.op r.value pr[r.attr]
+        (succ |> Option.map (PartRange.update pr r.attr),
+         r.dest,
+         fail |> Option.map (PartRange.update pr r.attr))
         
     let rec processRules (rules: Rule list) (def: Dest) (pr: PartRange) =
         match rules with
@@ -185,12 +161,13 @@ let partRanges (workflows: Map<string,Workflow>) =
     and processWorkflow (wf: Workflow) (pr: PartRange) =
         processRules wf.Rules wf.Default pr
         
-    processWorkflow workflows["in"] {
-        x = {lo = 1; hi = 4000}
-        m = {lo = 1; hi = 4000}
-        a = {lo = 1; hi = 4000}
-        s = {lo = 1; hi = 4000}
-    }
+    let initial = [
+        ('x', {lo = 1; hi = 4000})
+        ('m', {lo = 1; hi = 4000})
+        ('a', {lo = 1; hi = 4000})
+        ('s', {lo = 1; hi = 4000})
+    ]
+    processWorkflow workflows["in"] (initial |> Map.ofList)
 
 let part2 (s: string) =
     let workflows, _ = s |> Parser.parse
