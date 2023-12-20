@@ -51,8 +51,8 @@ module Parser =
     let workflowName = many1Satisfy isLetter .>> skipChar '{'
     let rule = pipe4 (anyOf "xmas") (anyOf "<>") (pint32 .>> skipChar ':') (many1Satisfy isLetter .>> skipChar ',') Rule.fromParse
     let workflow = pipe3 workflowName (many1 (attempt rule)) (many1Satisfy isLetter .>> skipChar '}' .>> spaces) Workflow.formParse
-    let pattr = anyOf "xmas" >>. skipChar '=' >>. pint32
-    let part = skipChar '{' >>. (sepBy pattr (skipChar ',')) .>> skipChar '}' .>> spaces
+    let pAttr = anyOf "xmas" >>. skipChar '=' >>. pint32
+    let part = skipChar '{' >>. (sepBy pAttr (skipChar ',')) .>> skipChar '}' .>> spaces
     let parser = (many1 workflow) .>> spaces .>>. (many1 part) .>> spaces
 
     let parse (s: string) =
@@ -119,36 +119,30 @@ module Range =
 type PartRange = Map<char,Range>
 
 module PartRange =
-    let update (pr: PartRange) (c: char) (r: Range) = Map.add c r pr
+    let update (c: char) (r: Range) (pr: PartRange) = Map.add c r pr
         
     let size (pr: PartRange) = pr |> Map.values |> Seq.map Range.size |> Seq.reduce (*)
 
 let partRanges (workflows: Map<string,Workflow>) =
-    // returns (match range, match dest, non-match range)
-    let processRule (r: Rule) (pr: PartRange) =
-        let succ, fail = Range.split r.op r.value pr[r.attr]
-        (succ |> Option.map (PartRange.update pr r.attr),
-         r.dest,
-         fail |> Option.map (PartRange.update pr r.attr))
-        
     let rec processRules (rules: Rule list) (def: Dest) (pr: PartRange) =
         match rules with
         | r::rs ->
-            let succ, dest, fail = processRule r pr
+            let successRange, failRange = Range.split r.op r.value pr[r.attr]
             
             let succ =
-                match succ with
+                match successRange with
                 | None -> []
-                | Some pr ->
-                    match dest with
+                | Some rn ->
+                    let pr = PartRange.update r.attr rn pr
+                    match r.dest with
                     | Workflow x -> processWorkflow workflows[x] pr
                     | Accept -> [pr]
                     | Reject -> []
                     
             let fail =    
-                match fail with
+                match failRange with
                 | None -> []
-                | Some pr -> processRules rs def pr
+                | Some rn -> processRules rs def (PartRange.update r.attr rn pr)
             
             succ @ fail
             
@@ -170,7 +164,10 @@ let partRanges (workflows: Map<string,Workflow>) =
     processWorkflow workflows["in"] (initial |> Map.ofList)
 
 let part2 (s: string) =
-    let workflows, _ = s |> Parser.parse
-    let workflows = workflows |> List.map (fun w -> (w.Name,w)) |> Map.ofList
-    let prs = workflows |> partRanges
-    prs |> List.sumBy PartRange.size
+    s
+    |> Parser.parse
+    |> fst
+    |> List.map (fun w -> (w.Name,w))
+    |> Map.ofList
+    |> partRanges
+    |> List.sumBy PartRange.size
